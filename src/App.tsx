@@ -51,14 +51,17 @@ export default function App() {
     }
 
     setMessage(`Laporan berhasil dibuat: ${result.requestNumber}`);
+
     setTitle("");
     setDescription("");
     setLocation("");
+    setCategory("Internet");
+
     await loadRequests();
   }
 
   return (
-    <main style={{ maxWidth: 900, margin: "40px auto", padding: 20 }}>
+    <main style={{ maxWidth: 1000, margin: "40px auto", padding: 20 }}>
       <h1>Campus Service Request</h1>
       <p>Laporkan masalah fasilitas kampus.</p>
 
@@ -122,21 +125,30 @@ export default function App() {
       {requests.length === 0 ? (
         <p>Belum ada laporan.</p>
       ) : (
-        <table border={1} cellPadding={8}>
+        <table
+          border={1}
+          cellPadding={8}
+          style={{ width: "100%", borderCollapse: "collapse" }}
+        >
           <thead>
             <tr>
               <th>Nomor</th>
               <th>Judul</th>
               <th>Lokasi</th>
+              <th>Kategori</th>
+              <th>Prioritas</th>
               <th>Status</th>
             </tr>
           </thead>
+
           <tbody>
             {requests.map((item) => (
               <tr key={item.id}>
                 <td>{item.request_number}</td>
                 <td>{item.title}</td>
                 <td>{item.location}</td>
+                <td>{item.category}</td>
+                <td>{item.priority}</td>
                 <td>{item.status}</td>
               </tr>
             ))}
