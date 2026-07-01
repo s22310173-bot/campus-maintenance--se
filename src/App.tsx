@@ -29,6 +29,7 @@ export default function App() {
   const [selectedCategory, setSelectedCategory] = useState("Internet");
   const [selectedPriority, setSelectedPriority] = useState("MEDIUM");
   const [selectedTechnician, setSelectedTechnician] = useState("TECH-001");
+  const [selectedStatus, setSelectedStatus] = useState("IN_PROGRESS");
 
   async function loadRequests() {
     const response = await fetch("/api/requests");
@@ -50,6 +51,7 @@ export default function App() {
       // Sinkronisasi nilai awal dropdown di bagian detail
       setSelectedCategory(result.category);
       setSelectedPriority(result.priority);
+      setSelectedStatus(result.status);
     } finally {
       setLoadingDetail(false);
     }
@@ -138,6 +140,37 @@ export default function App() {
       },
       body: JSON.stringify({
         technician_id: selectedTechnician,
+      }),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      alert(result.error);
+      return;
+    }
+
+    alert(result.message);
+
+    setSelectedRequest({
+      ...selectedRequest,
+      status: result.status,
+    });
+
+    await loadRequests();
+  }
+
+  async function updateStatus() {
+    if (!selectedRequest) return;
+
+    const response = await fetch(`/api/requests/${selectedRequest.id}/status`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        "x-role": "Technician",
+      },
+      body: JSON.stringify({
+        status: selectedStatus,
       }),
     });
 
@@ -407,6 +440,38 @@ export default function App() {
 
             <button type="button" onClick={assignTechnician}>
               Tugaskan Teknisi
+            </button>
+          </div>
+
+          {/* Panel Update Status (Teknisi) */}
+          <div
+            style={{
+              marginTop: 20,
+              padding: 15,
+              background: "#fff8e8",
+              border: "1px dashed orange",
+              borderRadius: 6,
+            }}
+          >
+            <h4 style={{ marginTop: 0 }}>Update Status (Teknisi)</h4>
+
+            <div style={{ marginBottom: 15 }}>
+              <label style={{ marginRight: 10 }}>
+                <strong>Status:</strong>
+              </label>
+
+              <select
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+              >
+                <option value="IN_PROGRESS">IN_PROGRESS</option>
+                <option value="RESOLVED">RESOLVED</option>
+                <option value="CLOSED">CLOSED</option>
+              </select>
+            </div>
+
+            <button type="button" onClick={updateStatus}>
+              Update Status
             </button>
           </div>
 
