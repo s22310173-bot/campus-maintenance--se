@@ -18,11 +18,16 @@ export default function App() {
   );
   const [loadingDetail, setLoadingDetail] = useState(false);
 
+  // State untuk form pembuatan laporan baru
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
   const [category, setCategory] = useState("Internet");
   const [message, setMessage] = useState("");
+
+  // State baru untuk pengeditan Kategori & Prioritas di Detail Laporan
+  const [selectedCategory, setSelectedCategory] = useState("Internet");
+  const [selectedPriority, setSelectedPriority] = useState("MEDIUM");
 
   async function loadRequests() {
     const response = await fetch("/api/requests");
@@ -40,12 +45,15 @@ export default function App() {
         return;
       }
       setSelectedRequest(result);
+
+      // Sinkronisasi nilai awal dropdown di bagian detail
+      setSelectedCategory(result.category);
+      setSelectedPriority(result.priority);
     } finally {
       setLoadingDetail(false);
     }
   }
 
-  // Langkah 2: Fungsi untuk melakukan review laporan oleh Administrator
   async function reviewRequest() {
     if (!selectedRequest) return;
 
@@ -63,13 +71,11 @@ export default function App() {
       return;
     }
 
-    // Update state detail yang sedang aktif dilihat
     setSelectedRequest({
       ...selectedRequest,
       status: result.status,
     });
 
-    // Update state list agar status di tabel ikut berubah tanpa reload page
     setRequests((prev) =>
       prev.map((item) =>
         item.id === selectedRequest.id
@@ -79,6 +85,45 @@ export default function App() {
     );
 
     alert(result.message);
+  }
+
+  // Fungsi Baru: Menyimpan perubahan Kategori dan Prioritas laporan
+  async function saveAssignment() {
+    if (!selectedRequest) return;
+
+    const response = await fetch(
+      `/api/requests/${selectedRequest.id}/assignment`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "x-role": "Administrator",
+        },
+        body: JSON.stringify({
+          category: selectedCategory,
+          priority: selectedPriority,
+        }),
+      },
+    );
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      alert(result.error);
+      return;
+    }
+
+    alert(result.message);
+
+    // Update tampilan detail aktif
+    setSelectedRequest({
+      ...selectedRequest,
+      category: result.category,
+      priority: result.priority,
+    });
+
+    // Refresh data tabel utama
+    await loadRequests();
   }
 
   useEffect(() => {
@@ -122,6 +167,7 @@ export default function App() {
       <h1>Campus Service Request</h1>
       <p>Laporkan masalah fasilitas kampus.</p>
 
+      {/* Form Tambah Laporan */}
       <form onSubmit={submitRequest}>
         <p>
           <label>
@@ -245,23 +291,69 @@ export default function App() {
             <strong>Lokasi:</strong> {selectedRequest.location}
           </p>
           <p>
-            <strong>Kategori:</strong> {selectedRequest.category}
+            <strong>Kategori Saat Ini:</strong> {selectedRequest.category}
           </p>
           <p>
-            <strong>Prioritas:</strong> {selectedRequest.priority}
+            <strong>Prioritas Saat Ini:</strong> {selectedRequest.priority}
           </p>
           <p>
             <strong>Status:</strong> {selectedRequest.status}
           </p>
 
-          {/* Langkah 1: Tombol Review & Kembali Baru */}
+          {/* Form Pengaturan Kategori & Prioritas (Admin Panel) */}
+          <div
+            style={{
+              marginTop: 20,
+              padding: 15,
+              background: "#f5f5f5",
+              borderRadius: 6,
+              border: "1px dashed #bbb",
+            }}
+          >
+            <h4 style={{ marginTop: 0 }}>Atur Penugasan (Administrator)</h4>
+            <div style={{ marginBottom: 10 }}>
+              <label style={{ marginRight: 10 }}>
+                <strong>Kategori:</strong>{" "}
+              </label>
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+              >
+                <option>Internet</option>
+                <option>AC</option>
+                <option>Peralatan Kelas</option>
+                <option>Kebersihan</option>
+                <option>Lainnya</option>
+              </select>
+            </div>
+
+            <div style={{ marginBottom: 15 }}>
+              <label style={{ marginRight: 10 }}>
+                <strong>Prioritas:</strong>{" "}
+              </label>
+              <select
+                value={selectedPriority}
+                onChange={(e) => setSelectedPriority(e.target.value)}
+              >
+                <option>LOW</option>
+                <option>MEDIUM</option>
+                <option>HIGH</option>
+              </select>
+            </div>
+
+            <button type="button" onClick={saveAssignment}>
+              Simpan Perubahan
+            </button>
+          </div>
+
+          {/* Tombol Kontrol Bawaan */}
           <div style={{ marginTop: 20 }}>
             <button
               type="button"
               onClick={reviewRequest}
               style={{ marginRight: 10 }}
             >
-              Review
+              Review Laporan
             </button>
 
             <button type="button" onClick={() => setSelectedRequest(null)}>

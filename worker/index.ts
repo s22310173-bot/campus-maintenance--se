@@ -253,6 +253,80 @@ export default {
     }
 
     // ===========================
+    // PATCH /api/requests/:id/assignment
+    // Update Category & Priority
+    // ===========================
+    const assignmentMatch = url.pathname.match(
+      /^\/api\/requests\/([^/]+)\/assignment$/,
+    );
+
+    if (assignmentMatch && request.method === "PATCH") {
+      const id = assignmentMatch[1];
+      const role = request.headers.get("x-role");
+
+      if (role !== "Administrator") {
+        return json(
+          {
+            error:
+              "Hanya administrator yang dapat mengubah kategori dan prioritas.",
+          },
+          403,
+        );
+      }
+
+      const input = (await request.json()) as {
+        category?: string;
+        priority?: string;
+      };
+
+      if (!input.category || !input.priority) {
+        return json(
+          {
+            error: "Kategori dan prioritas wajib diisi.",
+          },
+          422,
+        );
+      }
+
+      const current = await env.DB.prepare(
+        `
+        SELECT id
+        FROM service_requests
+        WHERE id = ?
+        `,
+      )
+        .bind(id)
+        .first();
+
+      if (!current) {
+        return json(
+          {
+            error: "Laporan tidak ditemukan.",
+          },
+          404,
+        );
+      }
+
+      await env.DB.prepare(
+        `
+        UPDATE service_requests
+        SET
+          category = ?,
+          priority = ?
+        WHERE id = ?
+        `,
+      )
+        .bind(input.category.trim(), input.priority.trim(), id)
+        .run();
+
+      return json({
+        message: "Kategori dan prioritas berhasil diperbarui.",
+        category: input.category,
+        priority: input.priority,
+      });
+    }
+
+    // ===========================
     // Route Not Found
     // ===========================
     return json(
