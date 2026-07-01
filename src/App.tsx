@@ -45,6 +45,42 @@ export default function App() {
     }
   }
 
+  // Langkah 2: Fungsi untuk melakukan review laporan oleh Administrator
+  async function reviewRequest() {
+    if (!selectedRequest) return;
+
+    const response = await fetch(`/api/requests/${selectedRequest.id}/review`, {
+      method: "PATCH",
+      headers: {
+        "x-role": "Administrator",
+      },
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      alert(result.error);
+      return;
+    }
+
+    // Update state detail yang sedang aktif dilihat
+    setSelectedRequest({
+      ...selectedRequest,
+      status: result.status,
+    });
+
+    // Update state list agar status di tabel ikut berubah tanpa reload page
+    setRequests((prev) =>
+      prev.map((item) =>
+        item.id === selectedRequest.id
+          ? { ...item, status: result.status }
+          : item,
+      ),
+    );
+
+    alert(result.message);
+  }
+
   useEffect(() => {
     loadRequests();
   }, []);
@@ -217,9 +253,21 @@ export default function App() {
           <p>
             <strong>Status:</strong> {selectedRequest.status}
           </p>
-          <button type="button" onClick={() => setSelectedRequest(null)}>
-            Kembali
-          </button>
+
+          {/* Langkah 1: Tombol Review & Kembali Baru */}
+          <div style={{ marginTop: 20 }}>
+            <button
+              type="button"
+              onClick={reviewRequest}
+              style={{ marginRight: 10 }}
+            >
+              Review
+            </button>
+
+            <button type="button" onClick={() => setSelectedRequest(null)}>
+              Kembali
+            </button>
+          </div>
         </div>
       ) : (
         <p>Pilih salah satu laporan untuk melihat detail.</p>
