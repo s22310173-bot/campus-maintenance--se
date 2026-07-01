@@ -536,6 +536,89 @@ export default {
     }
 
     // ===========================
+    // GET /api/requests/:id/comments
+    // Fetch Request Comments
+    // ===========================
+    const commentsMatch = url.pathname.match(
+      /^\/api\/requests\/([^/]+)\/comments$/,
+    );
+
+    if (commentsMatch && request.method === "GET") {
+      const id = commentsMatch[1];
+
+      const result = await env.DB.prepare(
+        `
+        SELECT
+          id,
+          author_role,
+          comment,
+          created_at
+        FROM request_comments
+        WHERE request_id = ?
+        ORDER BY created_at ASC
+        `,
+      )
+        .bind(id)
+        .all();
+
+      return json({
+        data: result.results,
+      });
+    }
+
+    // ===========================
+    // POST /api/requests/:id/comments
+    // Create Request Comment
+    // ===========================
+    if (commentsMatch && request.method === "POST") {
+      const id = commentsMatch[1];
+
+      const input = (await request.json()) as {
+        authorRole?: string;
+        comment?: string;
+      };
+
+      if (!input.authorRole || !input.comment) {
+        return json(
+          {
+            error: "Role dan komentar wajib diisi.",
+          },
+          422,
+        );
+      }
+
+      await env.DB.prepare(
+        `
+        INSERT INTO request_comments
+        (
+          id,
+          request_id,
+          author_role,
+          comment
+        )
+        VALUES
+        (
+          ?, ?, ?, ?
+        )
+        `,
+      )
+        .bind(
+          crypto.randomUUID(),
+          id,
+          input.authorRole.trim(),
+          input.comment.trim(),
+        )
+        .run();
+
+      return json(
+        {
+          message: "Komentar berhasil ditambahkan.",
+        },
+        201,
+      );
+    }
+
+    // ===========================
     // GET /api/dashboard
     // Dashboard Statistics
     // ===========================
