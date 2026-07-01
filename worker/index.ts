@@ -327,6 +327,111 @@ export default {
     }
 
     // ===========================
+    // PATCH /api/requests/:id/assign
+    // Assign Technician
+    // ===========================
+    const assignMatch = url.pathname.match(
+      /^\/api\/requests\/([^/]+)\/assign$/,
+    );
+
+    if (assignMatch && request.method === "PATCH") {
+      const id = assignMatch[1];
+      const role = request.headers.get("x-role");
+
+      if (role !== "Administrator") {
+        return json(
+          {
+            error: "Hanya administrator yang dapat menugaskan teknisi.",
+          },
+          403,
+        );
+      }
+
+      const input = (await request.json()) as {
+        technician_id?: string;
+      };
+
+      if (!input.technician_id) {
+        return json(
+          {
+            error: "Teknisi wajib dipilih.",
+          },
+          422,
+        );
+      }
+
+      const current = await env.DB.prepare(
+        `
+        SELECT status
+        FROM service_requests
+        WHERE id = ?
+        `,
+      )
+        .bind(id)
+        .first<{ status: string }>();
+
+      if (!current) {
+        return json(
+          {
+            error: "Laporan tidak ditemukan.",
+          },
+          404,
+        );
+      }
+
+      if (current.status !== "UNDER_REVIEW") {
+        return json(
+          {
+            error:
+              "Laporan hanya dapat ditugaskan jika berstatus UNDER_REVIEW.",
+          },
+          409,
+        );
+      }
+
+      const updateStmt = env.DB.prepare(
+        `
+        UPDATE service_requests
+        SET
+          technician_id = ?,
+          status = 'ASSIGNED'
+        WHERE id = ?
+        `,
+      ).bind(input.technician_id, id);
+
+      const historyStmt = env.DB.prepare(
+        `
+        INSERT INTO request_status_history
+        (
+          id,
+          request_id,
+          old_status,
+          new_status,
+          changed_by
+        )
+        VALUES
+        (
+          ?, ?, ?, ?, ?
+        )
+        `,
+      ).bind(
+        crypto.randomUUID(),
+        id,
+        current.status,
+        "ASSIGNED",
+        "Administrator",
+      );
+
+      await env.DB.batch([updateStmt, historyStmt]);
+
+      return json({
+        message: "Teknisi berhasil ditugaskan.",
+        technician_id: input.technician_id,
+        status: "ASSIGNED",
+      });
+    }
+
+    // ===========================
     // Route Not Found
     // ===========================
     return json(
