@@ -499,43 +499,81 @@ export default {
         );
       }
 
-      const updateStmt = env.DB.prepare(
-        `
-        UPDATE service_requests
-        SET
-          status = ?
-        WHERE id = ?
-        `,
-      ).bind(input.status, id);
+      await env.DB.batch([
+        env.DB.prepare(
+          `
+          UPDATE service_requests
+          SET status = ?
+          WHERE id = ?
+          `,
+        ).bind(input.status, id),
 
-      const historyStmt = env.DB.prepare(
-        `
-        INSERT INTO request_status_history
-        (
+        env.DB.prepare(
+          `
+          INSERT INTO request_status_history
+          (
+            id,
+            request_id,
+            old_status,
+            new_status,
+            changed_by
+          )
+          VALUES (?, ?, ?, ?, ?)
+          `,
+        ).bind(
+          crypto.randomUUID(),
           id,
-          request_id,
-          old_status,
-          new_status,
-          changed_by
-        )
-        VALUES
-        (
-          ?, ?, ?, ?, ?
-        )
-        `,
-      ).bind(
-        crypto.randomUUID(),
-        id,
-        current.status,
-        input.status,
-        "Technician",
-      );
-
-      await env.DB.batch([updateStmt, historyStmt]);
+          current.status,
+          input.status,
+          "Technician",
+        ),
+      ]);
 
       return json({
         message: "Status berhasil diperbarui.",
         status: input.status,
+      });
+    }
+
+    // ===========================
+    // GET /api/dashboard
+    // Dashboard Statistics
+    // ===========================
+    if (url.pathname === "/api/dashboard" && request.method === "GET") {
+      const statusResult = await env.DB.prepare(
+        `
+        SELECT
+          status,
+          COUNT(*) AS total
+        FROM service_requests
+        GROUP BY status
+      `,
+      ).all();
+
+      const categoryResult = await env.DB.prepare(
+        `
+        SELECT
+          category,
+          COUNT(*) AS total
+        FROM service_requests
+        GROUP BY category
+      `,
+      ).all();
+
+      const priorityResult = await env.DB.prepare(
+        `
+        SELECT
+          priority,
+          COUNT(*) AS total
+        FROM service_requests
+        GROUP BY priority
+      `,
+      ).all();
+
+      return json({
+        status: statusResult.results,
+        category: categoryResult.results,
+        priority: priorityResult.results,
       });
     }
 
