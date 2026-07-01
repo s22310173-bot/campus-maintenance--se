@@ -19,13 +19,9 @@ export default function App() {
   const [message, setMessage] = useState("");
 
   async function loadRequests() {
-    try {
-      const response = await fetch("/api/requests");
-      const result = await response.json();
-      setRequests(result.data ?? []);
-    } catch {
-      // API belum tersedia pada tahap ini
-    }
+    const response = await fetch("/api/requests");
+    const result = await response.json();
+    setRequests(result.data ?? []);
   }
 
   useEffect(() => {
@@ -36,50 +32,34 @@ export default function App() {
     event.preventDefault();
     setMessage("");
 
-    try {
-      const response = await fetch("/api/requests", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          title,
-          description,
-          location,
-          category,
-        }),
-      });
+    const response = await fetch("/api/requests", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title,
+        description,
+        location,
+        category,
+      }),
+    });
 
-      const result = await response.json();
+    const result = await response.json();
 
-      if (!response.ok) {
-        setMessage(result.error ?? "Laporan gagal dibuat.");
-        return;
-      }
-
-      setMessage(`Laporan berhasil dibuat: ${result.requestNumber}`);
-
-      setTitle("");
-      setDescription("");
-      setLocation("");
-
-      await loadRequests();
-    } catch {
-      setMessage("API belum tersedia.");
+    if (!response.ok) {
+      setMessage(result.error ?? "Laporan gagal dibuat.");
+      return;
     }
+
+    setMessage(`Laporan berhasil dibuat: ${result.requestNumber}`);
+    setTitle("");
+    setDescription("");
+    setLocation("");
+    await loadRequests();
   }
 
   return (
-    <main
-      style={{
-        maxWidth: "900px",
-        margin: "40px auto",
-        padding: "20px",
-        fontFamily: "Arial, sans-serif",
-      }}
-    >
+    <main style={{ maxWidth: 900, margin: "40px auto", padding: 20 }}>
       <h1>Campus Service Request</h1>
-
       <p>Laporkan masalah fasilitas kampus.</p>
 
       <form onSubmit={submitRequest}>
@@ -151,7 +131,6 @@ export default function App() {
               <th>Status</th>
             </tr>
           </thead>
-
           <tbody>
             {requests.map((item) => (
               <tr key={item.id}>
