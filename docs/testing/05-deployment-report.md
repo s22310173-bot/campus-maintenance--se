@@ -8,6 +8,17 @@ Campus Service Request and Maintenance System
 
 # Deployment Information
 
+| Item            | Value                |
+| --------------- | -------------------- |
+| Platform        | Cloudflare Workers   |
+| Frontend        | React + Vite         |
+| Backend         | Cloudflare Workers   |
+| Database        | Cloudflare D1        |
+| Deployment Tool | Wrangler CLI         |
+| Environment     | Production           |
+| Version         | v1.0.0               |
+| Deployment Date | ********\_\_******** |
+=======
 | Item            | Value                        |
 | --------------- | ---------------------------- |
 | Platform        | Cloudflare Workers           |
@@ -18,6 +29,9 @@ Campus Service Request and Maintenance System
 | Environment     | Production                   |
 | Version         | v1.0.0                       |
 | Deployment Date | **\*\*\*\***\_\_**\*\*\*\*** |
+
+
+=======
 =======
 | Item            | Value                |
 | --------------- | -------------------- |

@@ -574,11 +574,11 @@ export default {
       const id = commentsMatch[1];
 
       const input = (await request.json()) as {
-        authorRole?: string;
+        author_role?: string;
         comment?: string;
       };
 
-      if (!input.authorRole || !input.comment) {
+      if (!input.author_role || !input.comment) {
         return json(
           {
             error: "Role dan komentar wajib diisi.",
@@ -605,7 +605,7 @@ export default {
         .bind(
           crypto.randomUUID(),
           id,
-          input.authorRole.trim(),
+          input.author_role.trim(),
           input.comment.trim(),
         )
         .run();
