@@ -11,6 +11,14 @@ type ServiceRequest = {
   status: string;
 };
 
+// 1. Tipe Comment yang ditambahkan
+type RequestComment = {
+  id: string;
+  author_role: string;
+  comment: string;
+  created_at: string;
+};
+
 export default function App() {
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
   const [selectedRequest, setSelectedRequest] = useState<ServiceRequest | null>(
@@ -30,6 +38,11 @@ export default function App() {
   const [selectedPriority, setSelectedPriority] = useState("MEDIUM");
   const [selectedTechnician, setSelectedTechnician] = useState("TECH-001");
   const [selectedStatus, setSelectedStatus] = useState("IN_PROGRESS");
+
+  // 2. State Komentar yang ditambahkan
+  const [comments, setComments] = useState<RequestComment[]>([]);
+  const [authorRole, setAuthorRole] = useState("Administrator");
+  const [comment, setComment] = useState("");
 
   // State untuk data statistik dashboard
   const [dashboard, setDashboard] = useState<{
@@ -65,6 +78,9 @@ export default function App() {
       }
       setSelectedRequest(result);
 
+      // 4. Memuat komentar saat membuka Detail
+      await loadComments(id);
+
       // Sinkronisasi nilai awal dropdown di bagian detail
       setSelectedCategory(result.category);
       setSelectedPriority(result.priority);
@@ -82,6 +98,14 @@ export default function App() {
     } finally {
       setLoadingDetail(false);
     }
+  }
+
+  // 3. Function Load Comment yang ditambahkan
+  async function loadComments(id: string) {
+    const response = await fetch(`/api/requests/${id}/comments`);
+    const result = await response.json();
+
+    setComments(result.data ?? []);
   }
 
   async function reviewRequest() {
@@ -227,6 +251,38 @@ export default function App() {
 
     await loadRequests();
     await loadDashboard();
+  }
+
+  // 5. Function Submit Comment yang ditambahkan
+  async function submitComment() {
+    if (!selectedRequest) return;
+
+    const response = await fetch(
+      `/api/requests/${selectedRequest.id}/comments`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          authorRole,
+          comment,
+        }),
+      },
+    );
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      alert(result.error);
+      return;
+    }
+
+    setComment("");
+
+    await loadComments(selectedRequest.id);
+
+    alert(result.message);
   }
 
   useEffect(() => {
@@ -448,7 +504,7 @@ export default function App() {
             <strong>Status:</strong> {selectedRequest.status}
           </p>
 
-          {/* Form Pengaturan Kategori & Prioritas (Admin Panel) - Diperbaiki hanya untuk UNDER_REVIEW */}
+          {/* Form Pengaturan Kategori & Prioritas (Admin Panel) */}
           {selectedRequest.status === "UNDER_REVIEW" && (
             <div
               style={{
@@ -496,7 +552,7 @@ export default function App() {
             </div>
           )}
 
-          {/* Panel Penugasan Teknisi - Hanya Muncul saat UNDER_REVIEW */}
+          {/* Panel Penugasan Teknisi */}
           {selectedRequest.status === "UNDER_REVIEW" && (
             <div
               style={{
@@ -530,7 +586,7 @@ export default function App() {
             </div>
           )}
 
-          {/* Panel Update Status (Teknisi) - Hanya Muncul saat ASSIGNED, IN_PROGRESS, atau RESOLVED */}
+          {/* Panel Update Status (Teknisi) */}
           {(selectedRequest.status === "ASSIGNED" ||
             selectedRequest.status === "IN_PROGRESS" ||
             selectedRequest.status === "RESOLVED") && (
@@ -591,7 +647,59 @@ export default function App() {
             </div>
           )}
 
-          {/* Tombol Kontrol Bawaan */}
+          {/* 6. UI Komentar yang ditambahkan */}
+          <hr />
+          <h3>Komentar</h3>
+          <div style={{ marginBottom: 15 }}>
+            <select
+              value={authorRole}
+              onChange={(e) => setAuthorRole(e.target.value)}
+            >
+              <option>Pelapor</option>
+              <option>Administrator</option>
+              <option>Technician</option>
+            </select>
+
+            <br />
+            <br />
+
+            <textarea
+              rows={4}
+              style={{ width: "100%" }}
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              placeholder="Tulis komentar..."
+            />
+
+            <br />
+            <br />
+
+            <button onClick={submitComment}>Kirim Komentar</button>
+          </div>
+
+          {/* 7. Daftar Komentar yang ditambahkan */}
+          <h3>Riwayat Komentar</h3>
+          {comments.length === 0 ? (
+            <p>Belum ada komentar.</p>
+          ) : (
+            comments.map((item) => (
+              <div
+                key={item.id}
+                style={{
+                  border: "1px solid #ddd",
+                  padding: 10,
+                  marginBottom: 10,
+                  borderRadius: 6,
+                }}
+              >
+                <strong>{item.author_role}</strong>
+                <p>{item.comment}</p>
+                <small>{item.created_at}</small>
+              </div>
+            ))
+          )}
+
+          {/* Tombol Kontrol Bawaan (Diletakkan setelah komentar sesuai instruksi) */}
           <div style={{ marginTop: 20 }}>
             {/* Tombol Review - Hanya Muncul saat SUBMITTED */}
             {selectedRequest.status === "SUBMITTED" && (
