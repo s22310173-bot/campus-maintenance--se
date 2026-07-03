@@ -28,6 +28,7 @@ export default function App() {
   // State baru untuk pengeditan Kategori & Prioritas di Detail Laporan
   const [selectedCategory, setSelectedCategory] = useState("Internet");
   const [selectedPriority, setSelectedPriority] = useState("MEDIUM");
+  const [selectedTechnician, setSelectedTechnician] = useState("TECH-001");
 
   async function loadRequests() {
     const response = await fetch("/api/requests");
@@ -123,6 +124,37 @@ export default function App() {
     });
 
     // Refresh data tabel utama
+    await loadRequests();
+  }
+
+  async function assignTechnician() {
+    if (!selectedRequest) return;
+
+    const response = await fetch(`/api/requests/${selectedRequest.id}/assign`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        "x-role": "Administrator",
+      },
+      body: JSON.stringify({
+        technician_id: selectedTechnician,
+      }),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      alert(result.error);
+      return;
+    }
+
+    alert(result.message);
+
+    setSelectedRequest({
+      ...selectedRequest,
+      status: result.status,
+    });
+
     await loadRequests();
   }
 
@@ -343,6 +375,38 @@ export default function App() {
 
             <button type="button" onClick={saveAssignment}>
               Simpan Perubahan
+            </button>
+          </div>
+
+          {/* Panel Teknisi */}
+          <div
+            style={{
+              marginTop: 20,
+              padding: 15,
+              background: "#eef6ff",
+              border: "1px dashed #6aa9ff",
+              borderRadius: 6,
+            }}
+          >
+            <h4 style={{ marginTop: 0 }}>Penugasan Teknisi</h4>
+
+            <div style={{ marginBottom: 15 }}>
+              <label style={{ marginRight: 10 }}>
+                <strong>Teknisi:</strong>
+              </label>
+
+              <select
+                value={selectedTechnician}
+                onChange={(e) => setSelectedTechnician(e.target.value)}
+              >
+                <option value="TECH-001">Andi</option>
+                <option value="TECH-002">Budi</option>
+                <option value="TECH-003">Charlie</option>
+              </select>
+            </div>
+
+            <button type="button" onClick={assignTechnician}>
+              Tugaskan Teknisi
             </button>
           </div>
 
