@@ -1,221 +1,244 @@
-# Campus Service Request and Maintenance System
+# 🏫 Campus Service Request and Maintenance System
 
-Sistem Tiketing Laporan Fasilitas Kampus berbasis **React**, **Cloudflare Workers**, dan **Cloudflare D1**.
-
----
-
-## Deskripsi
-
-Campus Service Request and Maintenance System adalah aplikasi web yang digunakan untuk mengelola laporan kerusakan fasilitas kampus secara terpusat. Sistem ini memungkinkan mahasiswa atau dosen membuat laporan, administrator mengelola tiket, teknisi memperbarui progres pekerjaan, dan manajer fasilitas memantau statistik melalui dashboard.
-
-Proyek ini dikembangkan sebagai tugas mata kuliah **Software Engineering** dengan mengikuti tahapan **Requirements Engineering**, **Design**, **Planning**, **Implementation**, **Testing**, dan **Deployment**.
+Sistem pelaporan dan manajemen fasilitas kampus berbasis **React, TypeScript, Cloudflare Workers, dan Cloudflare D1**.
 
 ---
 
-## Tujuan
+## 🌐 Live Application
 
-- Memusatkan pelaporan kerusakan fasilitas kampus.
-- Mempermudah pengelolaan tiket oleh administrator.
-- Mempercepat proses penugasan teknisi.
-- Memberikan transparansi status perbaikan kepada pelapor.
-- Menyediakan dashboard statistik bagi manajemen.
+**Demo Aplikasi**
+
+🔗 https://campus-maintenance.s22310173.workers.dev/
 
 ---
 
-## Aktor Sistem
+## 📖 Deskripsi
 
-| Aktor             | Deskripsi                                                    |
-| ----------------- | ------------------------------------------------------------ |
-| Pelapor           | Membuat tiket dan melihat status laporan                     |
-| Administrator     | Mengelola tiket, menentukan kategori, prioritas, dan teknisi |
-| Teknisi           | Memperbarui status pekerjaan                                 |
-| Manajer Fasilitas | Melihat dashboard dan laporan statistik                      |
+Campus Service Request and Maintenance System adalah aplikasi yang membantu civitas kampus dalam melaporkan kerusakan atau masalah fasilitas kampus. Sistem ini menyediakan proses pengelolaan tiket mulai dari pembuatan laporan, review oleh administrator, penugasan teknisi, hingga penyelesaian pekerjaan.
 
 ---
 
-## Workflow Tiket
+## ✨ Fitur
+
+### 👨‍🎓 Pelapor
+
+- Membuat laporan kerusakan
+- Melihat daftar laporan
+- Melihat detail laporan
+- Memberikan komentar
+
+### 👨‍💼 Administrator
+
+- Review laporan
+- Mengubah kategori
+- Mengubah prioritas
+- Menugaskan teknisi
+- Mengubah status laporan
+
+### 👨‍🔧 Teknisi
+
+- Melihat tugas
+- Mengubah status pekerjaan
+- Memberikan komentar
+
+### 📊 Manajer
+
+- Dashboard statistik
+- Statistik kategori
+- Statistik prioritas
+- Statistik status
+
+---
+
+# 🔄 Workflow Sistem
 
 ```text
 Submitted
-    ↓
+      │
+      ▼
 Under Review
-    ↓
+      │
+      ▼
 Assigned
-    ↓
+      │
+      ▼
 In Progress
-    ↓
+      │
+      ▼
 Resolved
-    ↓
+      │
+      ▼
 Closed
 ```
 
 ---
 
-## Fitur MVP
+# 🛠 Tech Stack
 
-- Membuat laporan kerusakan
-- Melihat daftar laporan
-- Melihat detail laporan
-- Menentukan kategori
-- Menentukan prioritas
-- Menugaskan teknisi
-- Memperbarui status tiket
-- Menambahkan komentar
-- Dashboard statistik
-
----
-
-## Teknologi
-
-### Frontend
-
-- React
-- TypeScript
-- Vite
-- Tailwind CSS
-
-### Backend
-
-- Cloudflare Workers
-- Hono
-
-### Database
-
-- Cloudflare D1 (SQLite)
-
-### Deployment
-
-- Cloudflare Pages
-- Cloudflare Workers
+| Teknologi          | Digunakan Untuk    |
+| ------------------ | ------------------ |
+| React              | Frontend           |
+| TypeScript         | Bahasa Pemrograman |
+| Vite               | Build Tool         |
+| Cloudflare Workers | Backend API        |
+| Cloudflare D1      | Database           |
+| HTML5              | Struktur Halaman   |
+| CSS3               | User Interface     |
+| GitHub             | Version Control    |
 
 ---
 
-## Struktur Repository
+# 📂 Project Structure
 
 ```text
-campus-maintenance/
-
+campus-maintenance
+│
+├── docs/
+│   ├── deployment/
+│   ├── design/
+│   └── testing/
+│
 ├── database/
 │   └── migrations/
 │
-├── docs/
-│   ├── requirements/
-│   ├── design/
-│   ├── planning/
-│   ├── testing/
-│   └── deployment/
-│
 ├── public/
-├── src/
-├── tests/
-├── worker/
-├── skills/
 │
-├── README.md
-├── CASE.md
+├── src/
+│   ├── assets/
+│   ├── App.tsx
+│   ├── App.css
+│   └── main.tsx
+│
+├── worker/
+│   └── index.ts
+│
 ├── package.json
-└── wrangler.jsonc
+├── wrangler.jsonc
+└── README.md
 ```
 
 ---
 
-## Dokumentasi
+# 🚀 Instalasi
 
-### Requirements Engineering
+Clone repository
 
-- Inception & Stakeholder
-- Elicitation
-- Software Requirement Specification
-- Prioritization
-- Validation
-- Change Request
-- Traceability Matrix
+```bash
+git clone https://github.com/s22310173-bot/campus-maintenance--se.git
+```
 
-### Design
+Masuk ke folder project
 
-- Architecture Design
-- Database & API Design
-- UI Design
-- Wireframe
+```bash
+cd campus-maintenance
+```
 
-### Planning
-
-- Issue Planning
-- GitHub Issues
-- Branch Strategy
-- Milestone
-
----
-
-## Cara Menjalankan
-
-### Install dependency
+Install dependency
 
 ```bash
 npm install
 ```
 
-### Jalankan aplikasi
+Menjalankan aplikasi
 
 ```bash
 npm run dev
 ```
 
----
-
-## Database
-
-Migration lokal:
+Build aplikasi
 
 ```bash
-npx wrangler d1 execute campus-maintenance-db --local --file=database/migrations/0001_initial.sql
+npm run build
 ```
 
-Migration production:
+Deploy
 
 ```bash
-npx wrangler d1 execute campus-maintenance-db --remote --file=database/migrations/0001_initial.sql
+npx wrangler deploy
 ```
 
 ---
 
-## Testing
+# ☁️ Deployment
 
-```bash
-npm test
+| Komponen | Platform                  |
+| -------- | ------------------------- |
+| Frontend | Cloudflare Workers Assets |
+| Backend  | Cloudflare Workers        |
+| Database | Cloudflare D1             |
+
+---
+
+# 🔗 API Endpoints
+
+| Endpoint                   | Method | Fungsi              |
+| -------------------------- | ------ | ------------------- |
+| /api/health                | GET    | Health Check        |
+| /api/dashboard             | GET    | Dashboard Statistik |
+| /api/requests              | GET    | Daftar Laporan      |
+| /api/requests              | POST   | Membuat Laporan     |
+| /api/requests/:id          | GET    | Detail Laporan      |
+| /api/requests/:id/comments | POST   | Tambah Komentar     |
+| /api/requests/:id/review   | PATCH  | Review Laporan      |
+| /api/requests/:id/assign   | PATCH  | Assign Teknisi      |
+| /api/requests/:id/status   | PATCH  | Update Status       |
+
+---
+
+# 📷 Screenshot
+
+Tambahkan screenshot aplikasi di folder:
+
+```text
+assets/screenshots/
 ```
 
----
+Contoh:
 
-## Deployment
-
-```bash
-npm run deploy
-```
-
----
-
-## Status Proyek
-
-| Tahap                    | Status          |
-| ------------------------ | --------------- |
-| Requirements Engineering | ✅ Selesai      |
-| Design                   | ✅ Selesai      |
-| Planning                 | 🚧 Dalam Proses |
-| Implementation           | 🚧 Dalam Proses |
-| Testing                  | ⏳ Belum        |
-| Deployment               | ⏳ Belum        |
+- Dashboard
+- Buat Laporan
+- Daftar Laporan
+- Detail Laporan
+- Review Laporan
+- Penugasan Teknisi
+- Dashboard Statistik
 
 ---
 
-## Author
+# ✅ Pengujian
 
-**Joshua Jordan**  
-Program Studi Informatika  
+| Fitur           | Status |
+| --------------- | ------ |
+| Membuat Laporan | ✅     |
+| Daftar Laporan  | ✅     |
+| Detail Laporan  | ✅     |
+| Review Laporan  | ✅     |
+| Assign Teknisi  | ✅     |
+| Update Status   | ✅     |
+| Dashboard       | ✅     |
+| Komentar        | ✅     |
+| Deployment      | ✅     |
+
+---
+
+# 📂 Repository
+
+GitHub Repository
+
+https://github.com/s22310173-bot/campus-maintenance--se
+
+---
+
+# 👨‍💻 Developer
+
+Joshua Jordan Jeblo
+
+Program Studi Informatika
+
 Universitas Klabat
 
 ---
 
-## License
+# 📄 License
 
-Proyek ini dibuat untuk keperluan akademik pada mata kuliah Software Engineering.
+Project ini dibuat sebagai tugas mata kuliah **Software Engineering**.
