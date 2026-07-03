@@ -24,17 +24,17 @@ export default {
     if (url.pathname === "/api/requests" && request.method === "GET") {
       const result = await env.DB.prepare(
         `
-SELECT
-  id,
-  request_number,
-  title,
-  location,
-  category,
-  priority,
-  status
-FROM service_requests
-ORDER BY created_at DESC
-`,
+        SELECT
+          id,
+          request_number,
+          title,
+          location,
+          category,
+          priority,
+          status
+        FROM service_requests
+        ORDER BY created_at DESC
+        `,
       ).all();
 
       return json({
@@ -53,19 +53,19 @@ ORDER BY created_at DESC
 
       const result = await env.DB.prepare(
         `
-SELECT
-  id,
-  request_number,
-  title,
-  description,
-  location,
-  category,
-  priority,
-  status,
-  created_at
-FROM service_requests
-WHERE id = ?
-`,
+        SELECT
+          id,
+          request_number,
+          title,
+          description,
+          location,
+          category,
+          priority,
+          status,
+          created_at
+        FROM service_requests
+        WHERE id = ?
+        `,
       )
         .bind(id)
         .first();
@@ -122,22 +122,22 @@ WHERE id = ?
 
       await env.DB.prepare(
         `
-INSERT INTO service_requests
-(
-  id,
-  request_number,
-  title,
-  description,
-  location,
-  category,
-  priority,
-  status
-)
-VALUES
-(
-  ?, ?, ?, ?, ?, ?, 'MEDIUM', 'SUBMITTED'
-)
-`,
+        INSERT INTO service_requests
+        (
+          id,
+          request_number,
+          title,
+          description,
+          location,
+          category,
+          priority,
+          status
+        )
+        VALUES
+        (
+          ?, ?, ?, ?, ?, ?, 'MEDIUM', 'SUBMITTED'
+        )
+        `,
       )
         .bind(
           id,
@@ -157,6 +157,99 @@ VALUES
         },
         201,
       );
+    }
+
+    // ===========================
+    // PATCH /api/requests/:id/review
+    // Review Service Request (Administrator Only)
+    // ===========================
+    const reviewMatch = url.pathname.match(
+      /^\/api\/requests\/([^/]+)\/review$/,
+    );
+
+    if (reviewMatch && request.method === "PATCH") {
+      const id = reviewMatch[1];
+      const role = request.headers.get("x-role");
+
+      if (role !== "Administrator") {
+        return json(
+          {
+            error: "Hanya administrator yang dapat melakukan review.",
+          },
+          403,
+        );
+      }
+
+      try {
+        // Ambil status lama
+        const current = await env.DB.prepare(
+          `
+          SELECT status
+          FROM service_requests
+          WHERE id = ?
+          `,
+        )
+          .bind(id)
+          .first<{ status: string }>();
+
+        if (!current) {
+          return json(
+            {
+              error: "Laporan tidak ditemukan.",
+            },
+            404,
+          );
+        }
+
+        // Siapkan query Update status
+        const updateStmt = env.DB.prepare(
+          `
+          UPDATE service_requests
+          SET status = 'UNDER_REVIEW'
+          WHERE id = ?
+          `,
+        ).bind(id);
+
+        // Siapkan query Simpan riwayat status
+        const historyStmt = env.DB.prepare(
+          `
+          INSERT INTO request_status_history
+          (
+            id,
+            request_id,
+            old_status,
+            new_status,
+            changed_by
+          )
+          VALUES
+          (
+            ?, ?, ?, ?, ?
+          )
+          `,
+        ).bind(
+          crypto.randomUUID(),
+          id,
+          current.status,
+          "UNDER_REVIEW",
+          "Administrator",
+        );
+
+        // Eksekusi kedua query secara bersamaan (Database Transaction)
+        await env.DB.batch([updateStmt, historyStmt]);
+
+        return json({
+          message: "Laporan berhasil direview.",
+          status: "UNDER_REVIEW",
+        });
+      } catch (error) {
+        console.error("Review Error:", error);
+        return json(
+          {
+            error: "Terjadi kesalahan server saat memperbarui status.",
+          },
+          500,
+        );
+      }
     }
 
     // ===========================
