@@ -432,6 +432,114 @@ export default {
     }
 
     // ===========================
+    // PATCH /api/requests/:id/status
+    // Update Service Request Status
+    // ===========================
+    const statusMatch = url.pathname.match(
+      /^\/api\/requests\/([^/]+)\/status$/,
+    );
+
+    if (statusMatch && request.method === "PATCH") {
+      const id = statusMatch[1];
+      const role = request.headers.get("x-role");
+
+      if (role !== "Technician") {
+        return json(
+          {
+            error: "Hanya teknisi yang dapat memperbarui status.",
+          },
+          403,
+        );
+      }
+
+      const input = (await request.json()) as {
+        status?: string;
+      };
+
+      if (!input.status) {
+        return json(
+          {
+            error: "Status wajib dipilih.",
+          },
+          422,
+        );
+      }
+
+      const current = await env.DB.prepare(
+        `
+        SELECT status
+        FROM service_requests
+        WHERE id = ?
+        `,
+      )
+        .bind(id)
+        .first<{ status: string }>();
+
+      if (!current) {
+        return json(
+          {
+            error: "Laporan tidak ditemukan.",
+          },
+          404,
+        );
+      }
+
+      const allowedTransitions: Record<string, string> = {
+        ASSIGNED: "IN_PROGRESS",
+        IN_PROGRESS: "RESOLVED",
+        RESOLVED: "CLOSED",
+      };
+
+      if (allowedTransitions[current.status] !== input.status) {
+        return json(
+          {
+            error: "Perubahan status tidak sesuai workflow.",
+          },
+          409,
+        );
+      }
+
+      const updateStmt = env.DB.prepare(
+        `
+        UPDATE service_requests
+        SET
+          status = ?
+        WHERE id = ?
+        `,
+      ).bind(input.status, id);
+
+      const historyStmt = env.DB.prepare(
+        `
+        INSERT INTO request_status_history
+        (
+          id,
+          request_id,
+          old_status,
+          new_status,
+          changed_by
+        )
+        VALUES
+        (
+          ?, ?, ?, ?, ?
+        )
+        `,
+      ).bind(
+        crypto.randomUUID(),
+        id,
+        current.status,
+        input.status,
+        "Technician",
+      );
+
+      await env.DB.batch([updateStmt, historyStmt]);
+
+      return json({
+        message: "Status berhasil diperbarui.",
+        status: input.status,
+      });
+    }
+
+    // ===========================
     // Route Not Found
     // ===========================
     return json(
