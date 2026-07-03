@@ -25,16 +25,33 @@ export default function App() {
   const [category, setCategory] = useState("Internet");
   const [message, setMessage] = useState("");
 
-  // State baru untuk pengeditan Kategori & Prioritas di Detail Laporan
+  // State untuk pengeditan Kategori & Prioritas di Detail Laporan
   const [selectedCategory, setSelectedCategory] = useState("Internet");
   const [selectedPriority, setSelectedPriority] = useState("MEDIUM");
   const [selectedTechnician, setSelectedTechnician] = useState("TECH-001");
   const [selectedStatus, setSelectedStatus] = useState("IN_PROGRESS");
 
+  // State untuk data statistik dashboard
+  const [dashboard, setDashboard] = useState<{
+    status: { status: string; total: number }[];
+    category: { category: string; total: number }[];
+    priority: { priority: string; total: number }[];
+  }>({
+    status: [],
+    category: [],
+    priority: [],
+  });
+
   async function loadRequests() {
     const response = await fetch("/api/requests");
     const result = await response.json();
     setRequests(result.data ?? []);
+  }
+
+  async function loadDashboard() {
+    const response = await fetch("/api/dashboard");
+    const result = await response.json();
+    setDashboard(result);
   }
 
   async function loadRequestDetail(id: string) {
@@ -51,7 +68,17 @@ export default function App() {
       // Sinkronisasi nilai awal dropdown di bagian detail
       setSelectedCategory(result.category);
       setSelectedPriority(result.priority);
-      setSelectedStatus(result.status);
+
+      // Mengatur nilai default dropdown status secara dinamis berdasarkan status saat ini
+      if (result.status === "ASSIGNED") {
+        setSelectedStatus("IN_PROGRESS");
+      } else if (result.status === "IN_PROGRESS") {
+        setSelectedStatus("RESOLVED");
+      } else if (result.status === "RESOLVED") {
+        setSelectedStatus("CLOSED");
+      } else {
+        setSelectedStatus(result.status);
+      }
     } finally {
       setLoadingDetail(false);
     }
@@ -88,9 +115,9 @@ export default function App() {
     );
 
     alert(result.message);
+    await loadDashboard();
   }
 
-  // Fungsi Baru: Menyimpan perubahan Kategori dan Prioritas laporan
   async function saveAssignment() {
     if (!selectedRequest) return;
 
@@ -118,15 +145,14 @@ export default function App() {
 
     alert(result.message);
 
-    // Update tampilan detail aktif
     setSelectedRequest({
       ...selectedRequest,
       category: result.category,
       priority: result.priority,
     });
 
-    // Refresh data tabel utama
     await loadRequests();
+    await loadDashboard();
   }
 
   async function assignTechnician() {
@@ -157,7 +183,11 @@ export default function App() {
       status: result.status,
     });
 
+    // Otomatis ubah nilai dropdown status berikutnya setelah ditugaskan
+    setSelectedStatus("IN_PROGRESS");
+
     await loadRequests();
+    await loadDashboard();
   }
 
   async function updateStatus() {
@@ -188,11 +218,20 @@ export default function App() {
       status: result.status,
     });
 
+    // Sinkronisasi dropdown status untuk tahap alur selanjutnya
+    if (result.status === "IN_PROGRESS") {
+      setSelectedStatus("RESOLVED");
+    } else if (result.status === "RESOLVED") {
+      setSelectedStatus("CLOSED");
+    }
+
     await loadRequests();
+    await loadDashboard();
   }
 
   useEffect(() => {
     loadRequests();
+    loadDashboard();
   }, []);
 
   async function submitRequest(event: React.FormEvent) {
@@ -218,6 +257,7 @@ export default function App() {
     setLocation("");
     setCategory("Internet");
     await loadRequests();
+    await loadDashboard();
   }
 
   return (
@@ -231,6 +271,50 @@ export default function App() {
     >
       <h1>Campus Service Request</h1>
       <p>Laporkan masalah fasilitas kampus.</p>
+
+      <hr />
+      <h2>Dashboard Statistik</h2>
+      <div
+        style={{
+          display: "flex",
+          gap: 30,
+          marginBottom: 30,
+          flexWrap: "wrap",
+        }}
+      >
+        <div>
+          <h3>Status</h3>
+          <ul>
+            {dashboard.status.map((item) => (
+              <li key={item.status}>
+                {item.status} : {item.total}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div>
+          <h3>Kategori</h3>
+          <ul>
+            {dashboard.category.map((item) => (
+              <li key={item.category}>
+                {item.category} : {item.total}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div>
+          <h3>Prioritas</h3>
+          <ul>
+            {dashboard.priority.map((item) => (
+              <li key={item.priority}>
+                {item.priority} : {item.total}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
 
       {/* Form Tambah Laporan */}
       <form onSubmit={submitRequest}>
@@ -286,7 +370,6 @@ export default function App() {
 
       <hr />
       <h2>Daftar Laporan</h2>
-
       {requests.length === 0 ? (
         <p>Belum ada laporan.</p>
       ) : (
@@ -365,125 +448,161 @@ export default function App() {
             <strong>Status:</strong> {selectedRequest.status}
           </p>
 
-          {/* Form Pengaturan Kategori & Prioritas (Admin Panel) */}
-          <div
-            style={{
-              marginTop: 20,
-              padding: 15,
-              background: "#f5f5f5",
-              borderRadius: 6,
-              border: "1px dashed #bbb",
-            }}
-          >
-            <h4 style={{ marginTop: 0 }}>Atur Penugasan (Administrator)</h4>
-            <div style={{ marginBottom: 10 }}>
-              <label style={{ marginRight: 10 }}>
-                <strong>Kategori:</strong>{" "}
-              </label>
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-              >
-                <option>Internet</option>
-                <option>AC</option>
-                <option>Peralatan Kelas</option>
-                <option>Kebersihan</option>
-                <option>Lainnya</option>
-              </select>
+          {/* Form Pengaturan Kategori & Prioritas (Admin Panel) - Diperbaiki hanya untuk UNDER_REVIEW */}
+          {selectedRequest.status === "UNDER_REVIEW" && (
+            <div
+              style={{
+                marginTop: 20,
+                padding: 15,
+                background: "#f5f5f5",
+                borderRadius: 6,
+                border: "1px dashed #bbb",
+              }}
+            >
+              <h4 style={{ marginTop: 0 }}>Atur Penugasan (Administrator)</h4>
+              <div style={{ marginBottom: 10 }}>
+                <label style={{ marginRight: 10 }}>
+                  <strong>Kategori:</strong>{" "}
+                </label>
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                >
+                  <option>Internet</option>
+                  <option>AC</option>
+                  <option>Peralatan Kelas</option>
+                  <option>Kebersihan</option>
+                  <option>Lainnya</option>
+                </select>
+              </div>
+
+              <div style={{ marginBottom: 15 }}>
+                <label style={{ marginRight: 10 }}>
+                  <strong>Prioritas:</strong>{" "}
+                </label>
+                <select
+                  value={selectedPriority}
+                  onChange={(e) => setSelectedPriority(e.target.value)}
+                >
+                  <option>LOW</option>
+                  <option>MEDIUM</option>
+                  <option>HIGH</option>
+                </select>
+              </div>
+
+              <button type="button" onClick={saveAssignment}>
+                Simpan Perubahan
+              </button>
             </div>
+          )}
 
-            <div style={{ marginBottom: 15 }}>
-              <label style={{ marginRight: 10 }}>
-                <strong>Prioritas:</strong>{" "}
-              </label>
-              <select
-                value={selectedPriority}
-                onChange={(e) => setSelectedPriority(e.target.value)}
-              >
-                <option>LOW</option>
-                <option>MEDIUM</option>
-                <option>HIGH</option>
-              </select>
+          {/* Panel Penugasan Teknisi - Hanya Muncul saat UNDER_REVIEW */}
+          {selectedRequest.status === "UNDER_REVIEW" && (
+            <div
+              style={{
+                marginTop: 20,
+                padding: 15,
+                background: "#eef6ff",
+                border: "1px dashed #6aa9ff",
+                borderRadius: 6,
+              }}
+            >
+              <h4 style={{ marginTop: 0 }}>Penugasan Teknisi</h4>
+
+              <div style={{ marginBottom: 15 }}>
+                <label style={{ marginRight: 10 }}>
+                  <strong>Teknisi:</strong>
+                </label>
+
+                <select
+                  value={selectedTechnician}
+                  onChange={(e) => setSelectedTechnician(e.target.value)}
+                >
+                  <option value="TECH-001">Andi</option>
+                  <option value="TECH-002">Budi</option>
+                  <option value="TECH-003">Charlie</option>
+                </select>
+              </div>
+
+              <button type="button" onClick={assignTechnician}>
+                Tugaskan Teknisi
+              </button>
             </div>
+          )}
 
-            <button type="button" onClick={saveAssignment}>
-              Simpan Perubahan
-            </button>
-          </div>
+          {/* Panel Update Status (Teknisi) - Hanya Muncul saat ASSIGNED, IN_PROGRESS, atau RESOLVED */}
+          {(selectedRequest.status === "ASSIGNED" ||
+            selectedRequest.status === "IN_PROGRESS" ||
+            selectedRequest.status === "RESOLVED") && (
+            <div
+              style={{
+                marginTop: 20,
+                padding: 15,
+                background: "#fff8e8",
+                border: "1px dashed orange",
+                borderRadius: 6,
+              }}
+            >
+              <h4 style={{ marginTop: 0 }}>Update Status (Teknisi)</h4>
 
-          {/* Panel Teknisi */}
-          <div
-            style={{
-              marginTop: 20,
-              padding: 15,
-              background: "#eef6ff",
-              border: "1px dashed #6aa9ff",
-              borderRadius: 6,
-            }}
-          >
-            <h4 style={{ marginTop: 0 }}>Penugasan Teknisi</h4>
+              <div style={{ marginBottom: 15 }}>
+                <label style={{ marginRight: 10 }}>
+                  <strong>Status:</strong>
+                </label>
 
-            <div style={{ marginBottom: 15 }}>
-              <label style={{ marginRight: 10 }}>
-                <strong>Teknisi:</strong>
-              </label>
+                <select
+                  value={selectedStatus}
+                  onChange={(e) => setSelectedStatus(e.target.value)}
+                >
+                  {selectedRequest.status === "ASSIGNED" && (
+                    <option value="IN_PROGRESS">IN_PROGRESS</option>
+                  )}
 
-              <select
-                value={selectedTechnician}
-                onChange={(e) => setSelectedTechnician(e.target.value)}
-              >
-                <option value="TECH-001">Andi</option>
-                <option value="TECH-002">Budi</option>
-                <option value="TECH-003">Charlie</option>
-              </select>
+                  {selectedRequest.status === "IN_PROGRESS" && (
+                    <option value="RESOLVED">RESOLVED</option>
+                  )}
+
+                  {selectedRequest.status === "RESOLVED" && (
+                    <option value="CLOSED">CLOSED</option>
+                  )}
+                </select>
+              </div>
+
+              <button type="button" onClick={updateStatus}>
+                Update Status
+              </button>
             </div>
+          )}
 
-            <button type="button" onClick={assignTechnician}>
-              Tugaskan Teknisi
-            </button>
-          </div>
-
-          {/* Panel Update Status (Teknisi) */}
-          <div
-            style={{
-              marginTop: 20,
-              padding: 15,
-              background: "#fff8e8",
-              border: "1px dashed orange",
-              borderRadius: 6,
-            }}
-          >
-            <h4 style={{ marginTop: 0 }}>Update Status (Teknisi)</h4>
-
-            <div style={{ marginBottom: 15 }}>
-              <label style={{ marginRight: 10 }}>
-                <strong>Status:</strong>
-              </label>
-
-              <select
-                value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
-              >
-                <option value="IN_PROGRESS">IN_PROGRESS</option>
-                <option value="RESOLVED">RESOLVED</option>
-                <option value="CLOSED">CLOSED</option>
-              </select>
+          {/* Banner Pemberitahuan Setelah Status Menjadi CLOSED */}
+          {selectedRequest.status === "CLOSED" && (
+            <div
+              style={{
+                marginTop: 20,
+                padding: 15,
+                background: "#e6f4ea",
+                color: "#137333",
+                fontWeight: "bold",
+                borderRadius: 6,
+                border: "1px solid #137333",
+              }}
+            >
+              ✓ Tiket telah selesai dan ditutup.
             </div>
-
-            <button type="button" onClick={updateStatus}>
-              Update Status
-            </button>
-          </div>
+          )}
 
           {/* Tombol Kontrol Bawaan */}
           <div style={{ marginTop: 20 }}>
-            <button
-              type="button"
-              onClick={reviewRequest}
-              style={{ marginRight: 10 }}
-            >
-              Review Laporan
-            </button>
+            {/* Tombol Review - Hanya Muncul saat SUBMITTED */}
+            {selectedRequest.status === "SUBMITTED" && (
+              <button
+                type="button"
+                onClick={reviewRequest}
+                style={{ marginRight: 10 }}
+              >
+                Review Laporan
+              </button>
+            )}
 
             <button type="button" onClick={() => setSelectedRequest(null)}>
               Kembali
